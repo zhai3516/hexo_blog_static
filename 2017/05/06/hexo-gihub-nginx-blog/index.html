@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  <title>基于 hexo-github 的blog搭建方案 | Zhaif&#39;s Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="之前的 blog 一直使用的是 wordpress，搭建使用起来还算方便。但是wordpress 漏动较多、需要备份 mysql 等等，维护起来比较麻烦，所以准备迁移到比较轻量的 hexo。 hexo是一套基于 nodejs 的简单轻量的blog框架，使用它，可以直接本地编辑好 markdown 文件，然后上传到 github 或者 gitlab 上，hexo 直接从这些源拉取文件，省去了维护存储">
+<meta name="keywords" content="Hexo,Blog">
+<meta property="og:type" content="article">
+<meta property="og:title" content="基于 hexo-github 的blog搭建方案">
+<meta property="og:url" content="http://128.199.208.179/2017/05/06/hexo-gihub-nginx-blog/index.html">
+<meta property="og:site_name" content="Zhaif&#39;s Blog">
+<meta property="og:description" content="之前的 blog 一直使用的是 wordpress，搭建使用起来还算方便。但是wordpress 漏动较多、需要备份 mysql 等等，维护起来比较麻烦，所以准备迁移到比较轻量的 hexo。 hexo是一套基于 nodejs 的简单轻量的blog框架，使用它，可以直接本地编辑好 markdown 文件，然后上传到 github 或者 gitlab 上，hexo 直接从这些源拉取文件，省去了维护存储">
+<meta property="og:updated_time" content="2017-05-06T11:22:54.719Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="基于 hexo-github 的blog搭建方案">
+<meta name="twitter:description" content="之前的 blog 一直使用的是 wordpress，搭建使用起来还算方便。但是wordpress 漏动较多、需要备份 mysql 等等，维护起来比较麻烦，所以准备迁移到比较轻量的 hexo。 hexo是一套基于 nodejs 的简单轻量的blog框架，使用它，可以直接本地编辑好 markdown 文件，然后上传到 github 或者 gitlab 上，hexo 直接从这些源拉取文件，省去了维护存储">
+  
+    <link rel="alternate" href="/atom.xml" title="Zhaif&#39;s Blog" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  <link rel="stylesheet" href="/css/style.css">
+  
+
+</head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/" id="logo">Zhaif&#39;s Blog</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="/" id="subtitle">Learn For Yourself</a>
+        </h2>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/">Home</a>
+        
+          <a class="main-nav-link" href="/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="http://128.199.208.179"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-hexo-gihub-nginx-blog" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/2017/05/06/hexo-gihub-nginx-blog/" class="article-date">
+  <time datetime="2017-05-06T12:00:00.000Z" itemprop="datePublished">2017-05-06</time>
+</a>
+    
+  <div class="article-category">
+    <a class="article-category-link" href="/categories/Hexo/">Hexo</a>
+  </div>
+
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      基于 hexo-github 的blog搭建方案
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>之前的 blog 一直使用的是 wordpress，搭建使用起来还算方便。但是wordpress 漏动较多、需要备份 mysql 等等，维护起来比较麻烦，所以准备迁移到比较轻量的 hexo。</p>
+<p>hexo是一套基于 nodejs 的简单轻量的blog框架，使用它，可以直接本地编辑好 markdown 文件，然后上传到 github 或者 gitlab 上，hexo 直接从这些源拉取文件，省去了维护存储的成本。</p>
+<p>本文总结了使用 hexo-github-nginx 搭建个人blog的方法。</p>
+<h1 id="Prepare"><a href="#Prepare" class="headerlink" title="Prepare"></a>Prepare</h1><p>在安装 hexo 之前，需要做一些前期的准备工作，安装一些必备的依赖和组件</p>
+<p>（系统 Centos 7）</p>
+<ol>
+<li><p>安装 nodejs</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">sudo yum install epel-release #基于epel源</div><div class="line">sudo yum install nodejs</div></pre></td></tr></table></figure>
+</li>
+<li><p>安装 nginx</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">sudo yum install nginx</div></pre></td></tr></table></figure>
+</li>
+<li><p>安装 git</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">sudo yum install git</div></pre></td></tr></table></figure>
+</li>
+<li><p>创建拥有 sudo 权限的用户</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div></pre></td><td class="code"><pre><div class="line"><span class="meta">#</span><span class="bash"> 使用 root 用户</span></div><div class="line">useradd blog</div><div class="line">passwd blog # 设置blog用户的密码</div><div class="line">usermod -aG wheel blog</div></pre></td></tr></table></figure>
+</li>
+<li><p>申请一个有效的 github 账户</p>
+</li>
+</ol>
+<h1 id="安装-Hexo"><a href="#安装-Hexo" class="headerlink" title="安装 Hexo"></a>安装 Hexo</h1><p>接下来就是正式安装 hexo的步骤，也很简单。<br>在安装前先从 root 用户前切换到 刚创建的 blog 用户：<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">sudo su blog</div></pre></td></tr></table></figure></p>
+<p>hexo需要安装两部分hexo-cli和hexo-server，其中cli提供了使用hexo的一些核心命令，是使用hexo最主要的部分，server提供了预览和测试的功能，以下是具体的安装过程：</p>
+<ol>
+<li><p>安装 hexo-cli</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">sudo npm install hexo-cli -g</div></pre></td></tr></table></figure>
+</li>
+<li><p>安装 hexo-server</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">sudo npm install hexo-server -g</div></pre></td></tr></table></figure>
+</li>
+<li><p>初始化 hexo</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line">hexo init ~/hexo_blog # 初始化一个blog的目录</div><div class="line">cd ~/hexo_blog </div><div class="line">npm install # 安装依赖</div></pre></td></tr></table></figure>
+</li>
+</ol>
+<p>此时，hexo 已经安装完成，并使用 hexo 创建了一个 blog 目录，接下来就是如何配置hexo。</p>
+<h1 id="配置-Hexo"><a href="#配置-Hexo" class="headerlink" title="配置 Hexo"></a>配置 Hexo</h1><p>在刚创建的 hexo_blog 目录下存在一下文件<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div></pre></td><td class="code"><pre><div class="line">-rw-rw-r--   1 blog blog  1483 May  6 06:06 _config.yml</div><div class="line">drwxrwxr-x 287 blog blog 12288 May  6 06:24 node_modules</div><div class="line">-rw-rw-r--   1 blog blog   443 May  6 06:06 package.json</div><div class="line">drwxrwxr-x   2 blog blog  4096 May  6 06:06 scaffolds</div><div class="line">drwxrwxr-x   3 blog blog  4096 May  6 06:06 source</div><div class="line">drwxrwxr-x   3 blog blog  4096 May  6 06:06 themes</div></pre></td></tr></table></figure></p>
+<p>其中 _config.yml 是核心配置文件，blog 中的大部分配置都在这里，比如 blog 的一些基本信息：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div><div class="line">4</div><div class="line">5</div><div class="line">6</div><div class="line">7</div></pre></td><td class="code"><pre><div class="line"> 5 # Site</div><div class="line"> 6 title: Zhaif&apos;s Blog</div><div class="line"> 7 subtitle: Learn For Yourself</div><div class="line"> 8 description: My Tech Blog</div><div class="line"> 9 author: Feng zhai</div><div class="line">10 language: zh</div><div class="line">11 timezone: China</div></pre></td></tr></table></figure></p>
+<p>另外需要更改的一些配置：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div></pre></td><td class="code"><pre><div class="line">url: http://your_server_ip</div><div class="line">default_layout: draft</div></pre></td></tr></table></figure></p>
+<p>url 选项是指定网站的ip(或域名)，default_layout 设为「draft」表示文章在发表前是保存为草稿状态的。</p>
+<p>关于其他配置选项细节可以参考官方文档<a href="https://hexo.io/docs/configuration.html" target="_blank" rel="external">Docs</a></p>
+<h1 id="在-Hexo-上发布一遍文章"><a href="#在-Hexo-上发布一遍文章" class="headerlink" title="在 Hexo 上发布一遍文章"></a>在 Hexo 上发布一遍文章</h1><p>使用 hexo new 命令可以快速的创建一篇文章，eg：<br><figure class="highlight plain"><table><tr><td class="gutter"><pre><div class="line">1</div><div class="line">2</div><div class="line">3</div></pre></td><td class="code"><pre><div class="line"># 注意在 hexo_blog 目录下运行</div><div class="line">[blog@zhaifeng-vps0 hexo_blog]$ hexo new hexo-gihub-nginx-blog</div><div class="line">INFO  Created: ~/hexo_blog/source/_drafts/hexo-gihub-nginx-blog.md</div></pre></td></tr></table></figure></p>
+<p>这样，在  ~/hexo_blog/source/_drafts/ 目录下就创建好一个 md 文件，并且拥有初始化了格式，直接编辑就可以。编辑好后，文件仍处于草稿状态，需要发布出去，执行命令：<br><figure class="highlight shell"><table><tr><td class="gutter"><pre><div class="line">1</div></pre></td><td class="code"><pre><div class="line">hexo publish hexo-gihub-nginx-blog</div></pre></td></tr></table></figure></p>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="http://128.199.208.179/2017/05/06/hexo-gihub-nginx-blog/" data-id="cj2dibmxd0001x10zn4abd2y6" class="article-share-link">Share</a>
+      
+      
+  <ul class="article-tag-list"><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Blog/">Blog</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="/tags/Hexo/">Hexo</a></li></ul>
+
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+  
+    <a href="/2017/05/06/hello-world/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">Older</strong>
+      <div class="article-nav-title">Hello World</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Categories</h3>
+    <div class="widget">
+      <ul class="category-list"><li class="category-list-item"><a class="category-list-link" href="/categories/Hexo/">Hexo</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tags</h3>
+    <div class="widget">
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="/tags/Blog/">Blog</a></li><li class="tag-list-item"><a class="tag-list-link" href="/tags/Hexo/">Hexo</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Tag Cloud</h3>
+    <div class="widget tagcloud">
+      <a href="/tags/Blog/" style="font-size: 10px;">Blog</a> <a href="/tags/Hexo/" style="font-size: 10px;">Hexo</a>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/archives/2017/05/">May 2017</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/2017/05/06/hexo-gihub-nginx-blog/">基于 hexo-github 的blog搭建方案</a>
+          </li>
+        
+          <li>
+            <a href="/2017/05/06/hello-world/">Hello World</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2017 Feng zhai<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/" class="mobile-nav-link">Home</a>
+  
+    <a href="/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  <link rel="stylesheet" href="/fancybox/jquery.fancybox.css">
+  <script src="/fancybox/jquery.fancybox.pack.js"></script>
+
+
+<script src="/js/script.js"></script>
+
+  </div>
+</body>
+</html>
