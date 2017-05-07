@@ -29,20 +29,20 @@ Prepare
 
 （系统 Centos 7）
 1. 安装 nodejs
-``` shell
+``` sh
 sudo yum install epel-release #基于epel源
 sudo yum install nodejs
 ```
 2. 安装 nginx
-``` shell
+``` sh
 sudo yum install nginx
 ```
 3. 安装 git
-``` shell
+``` sh
 sudo yum install git
 ```
 4. 创建拥有 sudo 权限的用户
-``` shell
+``` sh
 # 使用 root 用户
 useradd blog
 passwd blog # 设置blog用户的密码
@@ -58,21 +58,21 @@ https://github.com/zhai3516/hexo_blog_static.git
 =====================
 接下来就是正式安装 hexo的步骤，也很简单。
 在安装前先从 root 用户前切换到 刚创建的 blog 用户：
-```shell
+```sh
 sudo su blog
 ```
 
 hexo需要安装两部分hexo-cli和hexo-server，其中cli提供了使用hexo的一些核心命令，是使用hexo最主要的部分，server提供了预览和测试的功能，以下是具体的安装过程：
 1. 安装 hexo-cli
-``` shell
+``` sh
 sudo npm install hexo-cli -g
 ```
 2. 安装 hexo-server
-``` shell
+``` sh
 sudo npm install hexo-server -g
 ```
 3. 初始化 hexo
-``` shell
+``` sh
 hexo init ~/hexo_blog # 初始化一个blog的目录
 cd ~/hexo_blog 
 npm install # 安装依赖
@@ -113,15 +113,15 @@ default_layout: draft
 配置 Nginx
 ==========
 首先创建一个存放blog静态文件的系统目录：
-``` shell
+``` sh
 sudo mkdir -p /var/www/hexo
 ```
 将目录的用户权限配置给 blog 用户
-``` shell
+``` sh
 sudo chown -R blog:blog /var/www/hexo
 ```
 给目录增加写权限：
-```shell
+```sh
 sudo chmod -R 755 /var/www/hexo
 ```
 然后就是给 nginx 添加配置：
@@ -194,7 +194,7 @@ cp -r ~/hexo_blog/public/* /var/www/hexo/
 [blog@zhaifeng-vps0 ~]$ ls
 hexo_blog  hexo_blog_static  webhook-server.py  webhook.sh
 ``` 
-其中 hexo_blog 是 hexo 初始化的 blog 目录，hexo_blog_static 是拉去的 github 代码，webhook-server.py 是启动的本地 web server 用以接收 github 的请求，webhook.sh 是接收到 github 请求后更新静态文件目录的 shell 脚本。
+其中 hexo_blog 是 hexo 初始化的 blog 目录，hexo_blog_static 是拉去的 github 代码，webhook-server.py 是启动的本地 web server 用以接收 github 的请求，webhook.sh 是接收到 github 请求后更新静态文件目录的 sh 脚本。
 
 现在，直接在本地向 github push md 文件，远程服务器就会自动更新 blog了。
 
@@ -208,7 +208,7 @@ hexo_blog  hexo_blog_static  webhook-server.py  webhook.sh
 INFO  Created: ~/hexo_blog/source/_drafts/hexo-gihub-nginx-blog.md
 ```
 这样，在  ~/hexo_blog/source/_drafts/ 目录下就创建好一个 md 文件，并且拥有初始化了格式，直接编辑就可以。编辑好后，文件仍处于草稿状态，需要发布出去，执行命令：
-``` shell
+``` sh
 [blog@zhaifeng-vps0 hexo_blog]$ hexo publish hexo-gihub-nginx-blog
 INFO  Published: ~/hexo_blog/source/_posts/hexo-gihub-nginx-blog.md
 ```

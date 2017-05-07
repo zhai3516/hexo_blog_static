@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import json
+import os
+import traceback
 
 from flask import Flask, request
 
@@ -12,9 +14,10 @@ def update():
     if request.method == 'POST':
         try:
             print request.headers
-            print request.json()
+            print request.json
+            print os.popen("sh ~/webhook.sh").read()
         except:
-            print "error"
+            print traceback.format_exc()
 
     return json.dumps({"msg": "error method"})
 
