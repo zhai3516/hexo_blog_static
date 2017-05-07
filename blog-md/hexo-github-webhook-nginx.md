@@ -1,5 +1,5 @@
 ---
-title: 基于 github-webhook 的 hexo blog 搭建方案
+title: 基于 github-webhook 的 hexo-blog 搭建方案
 
 tags:
   - hexo
@@ -71,7 +71,6 @@ sudo npm install hexo-cli -g
 ``` shell
 sudo npm install hexo-server -g
 ```
-sudo npm install hexo-deployer-git --save 
 3. 初始化 hexo
 ``` shell
 hexo init ~/hexo_blog # 初始化一个blog的目录
@@ -145,12 +144,64 @@ sudo nginx -s reload
 ```
 配置 Github Webhook
 ===========
-Pass
+在 github 上配置一个 webhook：
+ pass
 
+在 vps 上启动一个 webhook server 脚本，这里用 python flask 写了一个简单的：
+``` python
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+import json
+import os
+import traceback
 
-Hexo server 本地预览
+from flask import Flask, request
+
+app = Flask(__name__)
+
+@app.route('/webhook', methods=['POST'])
+def update():
+    if request.method == 'POST':
+        try:
+            print request.headers
+            print request.json
+            print os.popen("sh ~/webhook.sh").read()
+        except:
+            print traceback.format_exc()
+
+    return json.dumps({"msg": "error method"})
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=8888, debug=False)
+```
+收到请求后执行的 webhook.sh 放在 ~/ 目录下，脚本如下：
+``` sh
+#!/usr/bin/env bash
+
+cd ~/hexo_blog_static
+git pull https://github.com/zhai3516/hexo_blog_static.git
+rm -rf ~/hexo_blog/source/_posts/*
+cp -r ~/hexo_blog_static/blog-md/* ~/hexo_blog/source/_posts/
+
+cd ~/hexo_blog
+hexo clean
+hexo generate
+rm -rf /var/www/hexo/*
+cp -r ~/hexo_blog/public/* /var/www/hexo/
+```
+配置好后在 『~/』 目录下 git clone 一份 github 代码，最后 『~/』 目录下的结构如下：
+```
+[blog@zhaifeng-vps0 ~]$ ls
+hexo_blog  hexo_blog_static  webhook-server.py  webhook.sh
+``` 
+其中 hexo_blog 是 hexo 初始化的 blog 目录，hexo_blog_static 是拉去的 github 代码，webhook-server.py 是启动的本地 web server 用以接收 github 的请求，webhook.sh 是接收到 github 请求后更新静态文件目录的 shell 脚本。
+
+现在，直接在本地向 github push md 文件，远程服务器就会自动更新 blog了。
+
+附：Hexo server 本地预览
 ====================
-使用 hexo new 命令可以快速的创建一篇文章，eg：
+编写好 markdown 文件后，可以使用 hexo-server 实现本地预览，预览没问题后直接push 就可以~
+1. 使用 hexo new 命令可以快速的创建一篇文章，eg：
 ```
 # 注意在 hexo_blog 目录下运行
 [blog@zhaifeng-vps0 hexo_blog]$ hexo new hexo-gihub-nginx-blog
@@ -167,4 +218,8 @@ hexo server
 ```
 会在本地 4000 端口启动一个供测试用的server，直接访问 http://127.0.0.1:4000 可以预览发布的文章效果。
 
-
+参考
+===================
+https://www.digitalocean.com/community/tutorials/how-to-create-a-blog-with-hexo-on-ubuntu-14-04
+https://aaron67.cc/2017/02/19/hexo-backup-and-deploy-solution-based-on-gitlab-ci-and-webhook/
+https://hexo.io/docs/
