@@ -9,8 +9,11 @@ app = Flask(__name__)
 @app.route('/webhook')
 def update():
     if request.method == 'POST':
-	print request.header
-        print request.body
+        try:
+	    print request.headers
+            print request.json()
+        except:
+            print "error"
 
 
     return json.dumps({"msg":"error method"})
