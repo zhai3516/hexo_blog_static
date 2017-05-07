@@ -6,17 +6,17 @@ from flask import Flask, request
 
 app = Flask(__name__)
 
-@app.route('/webhook')
+
+@app.route('/webhook', methods=['POST'])
 def update():
     if request.method == 'POST':
         try:
-	    print request.headers
+            print request.headers
             print request.json()
         except:
             print "error"
 
-
-    return json.dumps({"msg":"error method"})
+    return json.dumps({"msg": "error method"})
 
 
 if __name__ == '__main__':
