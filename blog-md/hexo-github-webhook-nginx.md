@@ -175,7 +175,7 @@ if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8888, debug=False)
 ```
 收到请求后执行的 webhook.sh 放在 ~/ 目录下，脚本如下：
-``` sh
+``` bash
 #!/usr/bin/env bash
 
 cd ~/hexo_blog_static
@@ -190,7 +190,7 @@ rm -rf /var/www/hexo/*
 cp -r ~/hexo_blog/public/* /var/www/hexo/
 ```
 配置好后在 『~/』 目录下 git clone 一份 github 代码，最后 『~/』 目录下的结构如下：
-```
+``` bash 
 [blog@zhaifeng-vps0 ~]$ ls
 hexo_blog  hexo_blog_static  webhook-server.py  webhook.sh
 ``` 
@@ -201,9 +201,8 @@ hexo_blog  hexo_blog_static  webhook-server.py  webhook.sh
 附：Hexo server 本地预览
 ====================
 编写好 markdown 文件后，可以使用 hexo-server 实现本地预览，预览没问题后直接push 就可以~
-1. 使用 hexo new 命令可以快速的创建一篇文章，eg：
-```
-# 注意在 hexo_blog 目录下运行
+1. 使用 hexo new 命令可以快速的创建一篇文章，注意在 hexo_blog 目录下运行，eg：
+``` bash
 [blog@zhaifeng-vps0 hexo_blog]$ hexo new hexo-gihub-nginx-blog
 INFO  Created: ~/hexo_blog/source/_drafts/hexo-gihub-nginx-blog.md
 ```
