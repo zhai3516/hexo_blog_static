@@ -19,11 +19,12 @@ hexo是一套基于 nodejs 的简单轻量的 blog 框架，它可以直接从 m
 1. 本地编辑好具体的 md 文件，预览没有问题后，直接将 md 文件上传到 github 存储。
 2. 远程的私人服务器上通过 webhook 获取 github 的变化通知，当发现有更新时，则从 github 上拉取最新的 md 文件。
 3. 拉取最新的文件后 hexo 生成新的静态文件
+
 这套方案发布简单、无需维护存储，用起来比较方便。
 
 Prepare
 ==================
-在安装 hexo 之前，需要做一些前期的准备工作，安装一些必备的依赖和组件
+在安装 hexo 之前，需要做一些前期的准备工作，安装一些必备的依赖和组件:
 
 （系统 Centos 7）
 
@@ -55,8 +56,7 @@ https://github.com/zhai3516/hexo_blog_static.git
 
 安装 Hexo
 =====================
-接下来就是正式安装 hexo 的步骤，也很简单。
-在安装前先从 root 用户前切换到刚创建的 blog 用户：
+接下来就是正式安装 hexo 的步骤，也很简单。在安装前先从 root 用户前切换到刚创建的 blog 用户：
 
 ```sh
 sudo su blog
@@ -81,7 +81,7 @@ npm install # 安装依赖
 
 配置 Hexo
 ==================
-在刚创建的 hexo_blog 目录下存在一下文件
+在刚创建的 hexo_blog 目录下存在以下文件
 ```
 -rw-rw-r--   1 blog blog  1483 May  6 06:06 _config.yml
 drwxrwxr-x 287 blog blog 12288 May  6 06:24 node_modules
@@ -104,7 +104,7 @@ drwxrwxr-x   3 blog blog  4096 May  6 06:06 themes
 ```
 url: http://your_server_ip
 ```
-更改 Writing section 的配置，default_layout 设为「draft」表示文章在发表前是保存为草稿状态的。：
+更改 Writing section 的配置，default_layout 设为「draft」表示文章在发表前是保存为草稿状态的：
 ```
 default_layout: draft
 ```
@@ -116,7 +116,7 @@ default_layout: draft
 ``` sh
 sudo mkdir -p /var/www/hexo
 ```
-将目录的用户权限配置给 blog 用户
+将目录的用户权限配置给 blog 用户:
 ``` sh
 sudo chown -R blog:blog /var/www/hexo
 ```
@@ -178,8 +178,7 @@ if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8888, debug=False)
 ```
 
-收到请求后，server 会执行一个更新 blog 静态 HTML文件的脚本
- webhook.sh，其放在 ~/ 目录下，脚本具体内容如下：
+收到请求后，server 会执行一个更新 blog 静态 HTML文件的脚本 webhook.sh，其放在 ~/ 目录下，脚本具体内容如下：
 
 ``` bash
 #!/usr/bin/env bash
