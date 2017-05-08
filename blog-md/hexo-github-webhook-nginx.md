@@ -1,15 +1,12 @@
 ---
-title: 基于 github-webhook 的 hexo-blog 搭建方案
 
+title: 基于 github-webhook 的 hexo-blog 搭建方案
 tags:
   - hexo
-  - blog
   - github
   - webhook
-
 categories:
-  - Hexo
-
+  - Tech
 comments: true
 date: 2017-05-06 20:00:00
 
