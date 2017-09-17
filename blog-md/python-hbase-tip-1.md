@@ -159,7 +159,27 @@ public static void test_hbase_filter1() throws IOException {
 -----------------------
 既然找到了原因，解决问题就比较简单了，存储的时候将整型数据全部都通过 `struct.pack` 方法转成 bytes 存入，这样就可以被通用的查询了，同时 使用 python 查询的时候也将 filter 中的整型数值替换成 bytes 格式。
 
-写入的代码：
+使用 struct.pack 方法将整型转成 bytes 时，注意选择使用 `big-endian` 的 Byte order，即 pack 方法的第一个参数使用 `>`。因为 java 官方 client 采用这种字节序，下面是 Bytes.toBytes 的实现源码，可见采用的是 `big-endian`：
+
+```java
+  /**
+   * Convert a long value to a byte array using big-endian.
+   *
+   * @param val value to convert
+   * @return the byte array
+   */
+  public static byte[] toBytes(long val) {
+    byte [] b = new byte[8];
+    for (int i = 7; i > 0; i--) {
+      b[i] = (byte) val;
+      val >>>= 8;
+    }
+    b[0] = (byte) val;
+    return b;
+```
+
+
+正确的 python 写入 hbase 的代码：
 ```python
 def save_main_v2():
     datas = dict()
