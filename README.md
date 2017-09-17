@@ -7,3 +7,5 @@ Blog url : zhaif.us
 2.从一次事故谈谈 pid 文件的作用
 
 3.Python 读写 hbase 数据的正确姿势（一）
+
+4.Python 读写 hbase 数据的正确姿势（二）
