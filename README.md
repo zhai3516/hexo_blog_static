@@ -9,3 +9,7 @@ Blog url : zhaif.us
 3.Python 读写 hbase 数据的正确姿势（一）
 
 4.Python 读写 hbase 数据的正确姿势（二）
+
+5.Python 读写 hbase 数据的正确姿势（三）
+
+6.Python 读写 hbase 数据的正确姿势（四）
