@@ -15,3 +15,5 @@ Blog url : zhaif.us
 6.Python 读写 hbase 数据的正确姿势（四）
 
 7.Python 读写 hbase 数据的正确姿势（五）
+
+8.Hive-Transform-Python:快捷的Map/Reduce

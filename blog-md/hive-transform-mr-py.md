@@ -11,7 +11,7 @@ categories:
   - Hive
 
 comments: true
-date: 2017-09-09 19:00:00
+date: 2018-03-04 17:00:00
 ---
 Hive 提供了 Transform 这一关键字，使用 python 脚本处理hive 的数据，实现 Map/Reduce 的效果，在一些场景下，相比直接编写 Hadoop MR 要方便不少。
 
