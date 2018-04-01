@@ -2,7 +2,9 @@
 title: 反爬小述
 
 tags:
-  - 反爬,antispider,anticrawler
+  - 反爬
+  - antispider
+  - anticrawler
 
 categories:
   - Tech
