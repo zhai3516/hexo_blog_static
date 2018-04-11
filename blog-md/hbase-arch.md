@@ -8,7 +8,7 @@ categories:
   - Hbase
 
 comments: true
-date: 2017-03-11 21:40:00
+date: 2016-03-11 21:40:00
 ---
 
 收藏一篇很详细介绍的 HBase 架构的文章，图文并茂，原文链接：

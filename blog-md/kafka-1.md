@@ -5,7 +5,7 @@ tags:
   - kafka
 
 categories:
-  - Tech
+  - Kafka
 
 comments: true
 date: 2015-12-18 22:00:00
