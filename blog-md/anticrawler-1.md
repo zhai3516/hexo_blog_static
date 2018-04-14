@@ -7,7 +7,7 @@ tags:
   - anticrawler
 
 categories:
-  - Tech
+  - anticrawler
 
 comments: true
 date: 2018-04-01 14:00:00
