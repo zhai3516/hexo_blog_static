@@ -1,5 +1,5 @@
 ---
-title: Redis 高可用之 Sentinel 简介与配置
+title: Redis 高可用之 Sentinel 部署与原理
 
 tags:
   - redis
@@ -24,6 +24,61 @@ Redis 的 Sentinel 本身是一个分布式系统，这样就避免了 Sentinel 
 Sentinel 启动必须指定配置文件，他的配置文件不单单是读取配置的作用，同时用作实时的状态存储。
 
 每个 sentinel 实例可以理解为一个 运行在 sentinel 模式下的 redis 实例。每个 sentinel 实例会创建两个向 redis  master/slave 的链接，其中一个链接用于发送命令，另一个链接是利用 redis  pubsub 功能和其他 sentinel 实例同步信息的。
+
+# 工作原理
+
+## 通信
+Sentinel 启动后会向其监控的 redis 实例(master or slave)建立两条连接：
+-  一条命令连接：用来向 redis 实例发送 redis 命令，比如 info 命令，获取 实例信息
+-  一个订阅连接：被监控的 redis 实例会创建一个 _sentinel_:hello 的频道，sentinel 会订阅并发布命令
+
+默认情况下，sentinel 会每 10s 向监控的 redis 实例发送 info 命令，获取相关信息，并记录或更新对应 redis 实例的信息。
+
+同样的，sentinel 也会每 2s 向监控的 redis 实例的 _sentinel_:hello 频道发送一条信息（PUBSUB），信息包括此 sentinel 自身的一些参数，如 ip、port、runid，以及被监控的这个 redis 实例的信息，如 ip、port、name。
+
+同时，sentinel 也订阅（SUBSCRIBE）了监控的 redis 实例的_sentinel_:hello 频道，也就是说一个 sentinel 发送到监控的 redis 实例订阅频道的信息会同时被其他监控此 redis 实例的 sentinel 收到，包括他自己。所以，监控同一个 redis 实例的所有 sentinel 之间通过此频道互相发现，然后会记录或更新其他监控这个 redis 的 sentinel 的相关信息。
+
+当 sentinel 发现一个新的 sentinel 后，会互相建立两条命令连接用以通信。
+
+## 检测实例下线
+
+连接建立完成后，sentinel 会不断向其他 sentinel 和所有监控的 redis 实例发生 PING （默认每 1s 一次），根据配置 `down-after-milliseconds`，当指定的时间内，如果其他 sentinel 或 redis 做出了无效恢复（包括未回复），则此 sentinel 认为对应实例 down（此时为主观下线）。
+
+（注意，不同的 sentinel 此配置可能不同。）
+
+当认定主观下线后，sentinel 会向其他 sentinel 确认，当有收到足够的确认回复后，此 sentinel 会认定此实例客观下线，准备开始实行故障转移。认定客观下线的确认值通过 `sentinel monitor ` 命令的 `quorum` 参数决定。
+
+## 选举 leader
+选举的策略大概可以概括为：
+- 每个认定实例客观下线的 sentinel 都会想其他 sentinel 发送请求选择自己成为局部 leader. 发送命令为
+
+```
+# 当 runid 是* 时这个命令用以确认客观下线
+# 而是 sentinel id 时，用以请求被选为 leader
+SENTINEL is-master-down-by-addr <ip> <port> <current_epoch> <runid>
+```
+
+- 收到此请求的 sentinel 根据先到先得的原则，将接受到第一个请求成为 leader 的 sentinel 选择为 leader.
+- 当一个 sentinel 收到大于半数的选票，比如 3 个 sentinel 的集群大于 2 个时，则成为 leader
+- 若在一轮选举中，没有 leader 产生，则各个 sentinel 会一段时间后再次选举.
+- sentinel 通过 configuration epoch 这个配置确保 sentinel 通信的有效性。这是值本质是一个计数器，每轮选举 +1 。每个 sentinel 在一轮选举中只能选择做出一次选择。而上文 `current_epoch` 这个参数就是用来确定当前选举的轮数，计算选票是，只有 current_epoch 必须相同，才能算作有效选举。
+
+## Failover
+
+选举成为 leader 的 sentinel 会执行此次 failover，具体过程如下：
+
+- 从所有 slave 中选出一个 slave，并将其设定为 master，向其发送 `slaveof no one`
+- 将对应的其他 slave 的复制目标改为新的 master，向其他 slave 发送新的 `slaveof master` 命令
+- 将 down 的 master 改为从新 master 的 slave，这一步会先保存，当 down 的 master 从新上线时，会发送 `slaveof master` 命令
+
+sentinel 选择新的 master 的一些原则：
+
+- 过滤： 过滤 down 和 最近 5s 内没有回复的 slave，保证剩余 slave 最近可用。同时过滤掉与 down master 超过一定时间 ( down-after-millseconds ) 没有通信的 slave，保证剩余的 slave 中数据比较新
+- 比较优先级：sentinel 会选择优先级最高的 slave
+- 比较 offset ：当具有多个优先级最高的 slave 时，sentinel 会选择 offset 最大的，意味着其数据最新
+- 比较 runid :   当优先级和 offset 都相同时，sentinel 选择 runid 最小的.
+
+总之，sentinel 选择新 master 的原则是`最近可用` 且 `数据最新` 且 `优先级最高` 且 `活跃最久` ！
 
 # 部署
 
