@@ -11,6 +11,7 @@ comments: true
 date: 2018-06-18 22:00:00
 
 ---
+
 去年的时候在做系统性能优化的工作中，花费了大量的精力为业务定制化缓存方案，当时感觉尽善尽美了，但前些天不经意再聊起缓存时发现在一些细节上还欠考虑。在这里总结一下做 cache 需要考虑的问题。
 
 大纲如下：
@@ -106,7 +107,7 @@ Ps：
 # 缓存击穿
 在高并发场景下（比如秒杀），如果某一时间一个 key 失效了，但同时又有大量的请求访问这个 key，此时这些请求都会直接落到下游的 DB，即`缓存击穿`（Cache penetration），对 DB 造成极大的压力，很可能一波打死 DB 业务挂掉。
 
-这种情况下比较通用的保护下游的方法通常是通过互斥锁访问下游 DB，获得锁的线程/进程负责读取 DB 并更新 cache，而其他 acquire lock 失败的进程则重试整个 get的逻辑。
+这种情况下比较通用的保护下游的方法是通过互斥锁访问下游 DB，获得锁的线程/进程负责读取 DB 并更新 cache，而其他 acquire lock 失败的进程则重试整个 get的逻辑。
 
 以 redis 的 set 方法实现此逻辑如下：
 ```python
@@ -116,6 +117,45 @@ def get(key, retry=3):
     def _get(k):
         value = cache.get(k)
         if value is None:
+            if r.set(k,1,ex=1,nx=true): # 加锁
+                value = db.get(k)
+                cache.set(k, value)
+                return true, value
+            else:
+                return None, false
+        else:
+            return value, true
+    while retry:
+        value, flag = _get(key)
+        if flag == True:
+            return value
+        time.sleep(1) # 获取锁失败，sleep 后重新访问
+        retry -= 1
+    raise Exception("获取失败")
+```
+
+
+# 缓存穿透
+当请求访问的数据是一条并不存在的数据时，一般这种不存在的数据是不会写入 cache，所以访问这种数据的请求都会直接落地到下游 db，当这种请求量很大时，同样会给下游 db 带来风险。
+
+解决方法：
+
+1. 可以考虑适当的缓存这种数据一小段时间，将这种空数据缓存为一段特殊的值。
+
+2. 另一种更严谨的做法是使用 BloomFilter, BloomFilter 的特点在检测 key 是否存在时，不会漏报（BloomFilter 不存在时，一定不存在），但有可能误报（BloomFilter 存在时，有可能不存在）。Hbase 内部即使用 BloomFilter 来快速查找不存在的行。
+
+基于 BloomFilter 的预防穿透：
+```python
+# 读 v3
+r = redis.StrictRedis()
+def get(key, retry=3):
+    def _get(k):
+        value = cache.get(k)
+        if value is None:
+            if not Bloomfilter.get(k):
+                # cache miss 时先查 Bloomfilter
+                # Bloomfilter 需要在 Db 写时同步事务更新
+                return None, true
             if r.set(k,1,ex=1,nx=true):
                 value = db.get(k)
                 cache.set(k, value)
@@ -133,16 +173,6 @@ def get(key, retry=3):
     raise Exception("获取失败")
 ```
 
-
-# 缓存穿透
-当请求访问的数据是一条并不存在的数据时，一般这种不存在的数据是不会写入 cache，所以访问这种数据的请求都会直接落地到下游 db，当这种请求量很大时，同样会给下游 db 带来风险。
-
-解决方法：
-
-1. 可以考虑适当的缓存这种数据一小段时间，将这种空数据缓存为一段特殊的值。
-
-2. 另一种更严谨的做法是使用 BloomFilter, BloomFilter 的特点在检测 key 是否存在时，不会漏报（BloomFilter 不存在时，一定不存在），但有可能误报（BloomFilter 存在时，有可能不存在）。Hbase 内部即使用 BloomFilter 来快速查找不存在的行。
-
 # 缓存雪崩
 当因为某种原因，比如同时过期、重启等，大量缓存在同一时间失效而导致大量的请求直接打到下游的服务或DB，为之带来巨大的压力从而可能崩溃宕机，即雪崩。
 
@@ -153,6 +183,8 @@ def get(key, retry=3):
 1. 一个比较简单的方法是`随机过期`，即每条 data 的过期时间可以设置为 `expire + random`。
 
 2. 另一个比较好的方案是可以做一个二级缓存，比如之前做缓存时设计的一套 `local_cache + redis` 的存储方案，或者 `redis + redis` 的模式。
+
+另外，就是合理的降级方案。在高并发场景下，当检测到过高的并发可能或已经对资源造成影响后，通过限流降级的方案保护下游资源，避免整个资源被打垮而不可用，在限流期间逐步构建缓存，当缓存逐渐恢复后取消限流，恢复降级。
 
 # 参考
 http://www.cs.utah.edu/~stutsman/cs6963/public/papers/memcached.pdf
