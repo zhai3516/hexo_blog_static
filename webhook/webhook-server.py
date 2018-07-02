@@ -1,13 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+import time
 import json
 import os
+import Queue
 import traceback
+import thread
+
 
 from flask import Flask, request
 
-app = Flask(__name__)
 
+tasks = Queue.Queue(100)
+def update_blog():
+    print "Run backgroud process to update blog"
+    while True:
+        result = tasks.get()
+        if result:
+            try:
+                print os.popen("sh /home/blog/webhook.sh").read()
+            except:
+                print traceback.format_exc()
+        time.sleep(1)
+thread.start_new_thread(update_blog, tuple())
+
+app = Flask(__name__)
 
 @app.route('/webhook', methods=['POST'])
 def update():
@@ -15,7 +32,7 @@ def update():
         try:
             print request.headers
             print request.json
-            print os.popen("sh ~/webhook.sh").read()
+            tasks.put(1)
         except:
             print traceback.format_exc()
 
