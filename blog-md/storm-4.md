@@ -1,86 +1,69 @@
 ---
-title: Storm－windowing 的一些尝试
+title: Storm入门系列之四：Storm 架构原理简析
 
 tags:
   - storm
-  - windowing
+  - ha
+  - nimbus
 
 categories:
   - Storm
 
 comments: true
-date: 2017-02-10 23:00:00
-
+date: 2017-02-08 22:00:00
 ---
-Storm 在 1.x.x 版本后引入了 windowing 机制，使得开发者可以很方便的做一些统计计算。
 
-最近由于工作内容变更，着手整合、开发公司的安全风控平台，又重拾 storm，使用storm清洗分发业务数据，并做相关计算。在接入 AntiCrawler（反爬虫）的业务需求时调研并使用了 storm 的 windowing 特性。
+# 集群架构
+storm 集群的构成比较简单，主要包括三部分：
+- Nimbus
+- Supervisor
+- Zookeeper
 
-Windowing介绍
-=====================
-Sliding & Tumbling
---------------------------------
-Storm官方文档抽象出两种类型的window：
+具体的构成如图：
+![storm 架构图（新）](https://upload-images.jianshu.io/upload_images/5915508-a2eb3ee3d4c90756.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
-（1）Sliding Window——一个tuple可以属于多个window，如下：![sliding-window](http://upload-images.jianshu.io/upload_images/5915508-78ee008d7b424653.jpeg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
-（2）Tumbling Window——一个tuple只属于一个window，如下：![tumbling-window](http://upload-images.jianshu.io/upload_images/5915508-1885fbf8f3fcc26a.jpeg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+在 storm 中，有一个概念——worker， 它是真正运行 storm topology 的进程，实现业务逻辑，Nimbus 和 Supervisor 合作完成 topology 到 worker 的调度分配。
 
-而定义一个 storm-window 的主要根据以下两点：window-length
- 和 slide-interval。其中，window-length 是指这个窗口的长度，slide-interval 是指这个窗口每次滑动的距离他们可以通过两种维度计算：
+Nimbus 是storm 集群的控制核心，不会运行任何 topology，其接收用户 submit 到集群的 topology  jar，然后将任务分配到 supervisor 的 worker 上，并监控每个 topology 任务的运行状态，保证任务的正常运行。另一方面，nimbus 会监控所有 Supervisor 的状态，当 Supervisor 故障时，将分配给其的任务分配到其他 Supervisor 上，同时保证保证 topology 均匀的运行在所有 Supervisor 进群上。
 
-（1）Count-即固定数量的tuple组成一个window
-（2）Duration-即固定时间内所有的tuple组成一个window。
+Supervisor 是一个守护进程，根据 Nimbus 分配的任务启动相应的 worker，并监听 worker 的正常运行。当某些 worker down 并会尝试重启，如果连续的重启失败一定次数后，Supervisor 会将 worker 的情况告知 Nimbus 重新分配。
+
+Zookeeper 则是整个进群的协调者， Nimbus 和 Supervisor 之间的通信主要是通过 Zookeeper 完成的。 Zookeeper 存储着 Supervisor 以及 worker 的心跳信息，保证 Nimbus 能监控整个集群的运行状态。另外，其存储了 topology 的基础信息、状态信息以及任务调度信息，同时还保存的一些 error 信息。Zookeeper 的具体目录结构如下：
+![storm-zookeeper 目录结构](https://upload-images.jianshu.io/upload_images/5915508-0ca9d006bb7e631d.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+一个 topology 从 submit 到运行整个流程大致如下：
+>   1. client 提交 topology jar （通过 thrift rpc ）
+>   2. Nimbus 收到 submit 请求，校验 topology （比如重名等等），并将 topology 基本信息，以及任务调度信息，写入到 Zookeeper
+>   3. Supervisor 订阅 Zookeeper ，发现又新提交的 topology ，启动 worker 执行相关任务，同时 Supervisor 会从 Nimbus 下载 jar 包
+
+在 提交成功后， nimbus 仍然会有一个 thread 定时检测 Supervisor 以及 topology ，根据情况触发重新调度。
+
+# Storm HA
+
+## worker/supervisor
+对于 worker 而言，其本质是一个进程，当某个 worker 异常时，Supervisor 作为一个守护进程为监听到这种情况，然后重启 worker 继续运行，保证 worker 层面是高可用的。
+
+对于 Supervisor 而言，当某个 Supervisor 挂了时，会触发 Nimbus 的重新调度，其会将这个
+
+## Nimbus HA
+
+在早期的 storm 版本（1.x 版本前？）中 nimbus 是一个单点，即整个集群只有一个 Nimbus 进程，并不支持 HA。不过因为 Nimbus 本身不执行任务业务 topology 任务，所以，当 Nimbus 宕机时，如果 Supervisor 以及 worker 运行正常，所有 topology 的运行状态依旧是正常的，不受干扰，只不过无法新提交 topology，也不会触发 topology 的重新调度。
+
+在新的版本中 storm 给出了 Nimbus HA 的方案，再集群中可以启动多个 Nimbus。 
+
+### Leader 的选举
+Storm Nimbus 中由 leader 负责响应各种请求，完成各种调度，其他 Nimbus 实例作为热备。
+![election and failover](https://upload-images.jianshu.io/upload_images/5915508-6563d880581290c6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
+
+Nimbus 提供一组 ILeaderElector 接口用以实现选举，官方实现了上图阐述了 Nimbus 依赖 zookeeper 实现 leader 选举的时序过程。大概流程如下
+
+1. 在 Nimbus 启动初始化时，每个 Nimbus 实例会检查是否具有全部激活的 topology jar 包，如果具有，则这个 Nimbus 实例具有成为 leader 的条件，他会 调用 `addToLeaderLockQueue`，加入到leader 候选队列中。
+2. 同时 Nimbus 实例会在后台启动一个 thread，不断的同步 topology code。
+3. 当某一时间 leader died，zk 选择其他 nimbus 实例成为 leader 时，对应的 nimbus 会check 自己是否具有成为 leader 的条件，即拥有全部激活的 topology jar 包，只有符合条件时，其才会接受成为 master。
+4. 之后，因缺少 topology jar 而未成为 leader 的 Nimbus 实例会从其他 Nimubus 拉取 topology jar 包，当它又具备成为其他的条件时，会再次 addToLeaderLockQueue。
 
 
-他们可以灵活的组合，以满足不同的需求，其具体接口可以参考storm-api（java-BaseWindowedBolt）。
-
-Timestamp
--------------------
-当使用 Duration 作为 window 的计算指标（length or interval）时，需要注意这样一个问题：每个 tuple 的 timestamp。Storm 根据 tuple 的 timestamp 来计算这个 tuple 是否属于这个 window。
-
-默认的 storm 把 window-bolt 处理这个 tuple 的当前时间作为这个tuple 的时间戳。另外可以通过代码指定tuple的某个字段作为这个tuple的timestamp（java的api是***withTimestampField(String fieldName)***）**。**
-
-个人不推荐使用默认值，最好使用 数据中自带的时间戳。因为在数据堆积的情况下，如果使用默认值，大量的历史堆积数据（对于实时计算来说在某种意义上已经是脏数据）会被当成实时值用以计算，导致数据不准确。
-
-Out of order
-----------------
-如果使用tuple自带的字段作为 timestamp，在分布式场景中，由于各种因素，输出的tuples的timestamp是乱序的，参考如下场景：
-
->假设一个 Sliding window，其 window-length 是 10s，slide-interval 是5s。依次收到t1(10:00:10)，t2(10:00:14)，t3(10:00:12)，t4(10:00:16) 4个 tuple。
-
-这种情况下storm会怎么做呢？默认的，storm在收到t3时发现其timestamp小于t2，则将其抛弃。并输出一条**INFO**级别的日志：
-
->INFO :  Received a late tuple {time=1488299337876} with ts 1488299337876. This will not processed.
-
-这种情况显然不是我们希望的，所以 storm 提供了一个接口withLag (Duration duration)，通过这个接口，开发者可以通过这接口设置 window 可以接受的最大延时。此时，如果设置最大延时5s，则在上述情况下，t3则不会被抛弃。
-
-所以，根据业务场景合理的设置withLag是有必要的。
-
-Watermarks
------------------
-Watermark 是 storm 内部跟踪处理 window 的一个特性，其类似Flink、MillWheel。在处理带有timestamp的tuple时，storm内部包含一个由tuple的timestamp计算而来的watermarks。
-
-它的计算方法是：storm 接受到得最新的 tuple 的 timestamp——Tmax 减去通过 withLat 设置的最大延时 L，`Max（T1…Tn）- L`。
-
-Watermark 是用来评估是否结算窗口（**window calculation**），每当 window bolt 收到一个 Watermark，都会评估当前的 tuple 是否有需要结算的窗口，可以通withWatermarkInterval(Duration interval) 接口设置 watermark 的发送周期，其默认值是1s。以下官方给出的watermark机制的demo：
->*假设一个Slide window，其Window length = 20s, sliding interval = 10s, watermark interval = 1s, lag = 5s。*
-
-**当前时间9:00:00，**e1(6:00:03), e2(6:00:05), e3(6:00:07), e4(6:00:18), e5(6:00:26), e6(6:00:36) 于 9:00:00 – 9:00:01到达。
-
-那么 9:00:01 收到的 watermark 则为 6:00:36-lag(5) = 6:00:31，6:00:31 向下取整 6:00:30 以前的所有未结算windows都会结算，所以此时有三个window将会计算：
-
->5:59:50 – 06:00:10 with tuples e1, e2, e3
-6:00:00 – 06:00:20 with tuples e1, e2, e3, e4
-6:00:10 – 06:00:30 with tuples e4, e5
-
-在 9:00:01 – 9:00:02，又有4个tuple，e7(8:00:25), e8(8:00:26), e9(8:00:27), e10(8:00:39)到达，则在 9:00:02（*watermark interval 是1s*）收到的 *watermark 是 8:00:39-lag(5) = 8:00:34，向下取整* 8:00:30以前的所有未结算window将会计算：
->6:00:20 – 06:00:40 with tuples e5, e6 (from earlier batch)
-6:00:30 – 06:00:50 with tuple e6 (from earlier batch)
-8:00:10 – 08:00:30 with tuples e7, e8, e9
-
-Trident Windowing
------------------------------
-上文介绍的 windowing 主要是以 storm-core 为基础的，同样的，trident 也提供了类似的机制，同样包含 Sliding 和 Tumbling 两种类型，其使用方法和 storm-core 类似，具体 demo 可以参考官方提供的 examples （参见文末链接）。
-
-Ps: 关于withTimestamp，withLag 和 watermark的测试验证测试代码可以参考：[storm-window-test 测试代码](https://github.com/zhai3516/storm-window-test)
-相关资料：[storm-windowing 官方文档](http://storm.apache.org/releases/1.0.3/Windowing.html)
+# 参考
+http://storm.apache.org/releases/1.0.0/Lifecycle-of-a-topology.html
+http://storm.apache.org/releases/1.0.0/nimbus-ha-design.html
+https://blog.csdn.net/asdfsadfasdfsa/article/details/77855622

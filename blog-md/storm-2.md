@@ -22,7 +22,7 @@ date: 2016-04-30 23:00:00
 ------------------------------
 目前在一家 CDN 公司做监控系统的开发，整个监控系统负责做全网15000+设备的监控、CDN相关服务的监控以及其他业务的一些监控。整个监控系统结构大概如下图：
 
-*图一：监控系统结构图*
+![图一：监控系统结构图](https://upload-images.jianshu.io/upload_images/5915508-48884043b1fcacfb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
 在这个监控系统中，kafka 负责收集所有 agent 上报的消息，storm 消费 kafka。Storm 的一个 topology 负责将所有的消息转存到 redis 用以告警，同时还将消息转存的 opentsdb 时间序列数据库中用以展示数据序列。
 
@@ -42,7 +42,7 @@ kafka消息格式
 ------------------------
 在讨论 storm topology 之前先聊聊 kafka 中的数据格式。因为CDN 服务的的核心是 nginx，很多服务和业务的核心数据是直接可以从 log 获取的，所以理想情况下能获得原始 log 然后各种分析是最理想的。但是考虑到全网 15000+ 的设备，在峰值时刻的带宽成本及其昂贵，所以我们采取了一下折中，通过部署在设备上的agent 实时跟踪 nginx 的日志流，将每条日志进行简要简析统计，将统计结果每 5min 上报的 kafka，这样基本解决的带宽成本（但是会带来 5min 的数据延时，可以根据不同的需求等级变更上报间隔）。上报的数据格式为：
 
-*图二： 上报kafka消息格式*
+![图二： 上报kafka消息格式](https://upload-images.jianshu.io/upload_images/5915508-10caa2f8ef1cbceb.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 
 Spout设计
 ----------------
@@ -68,7 +68,7 @@ kafka 的每条消息是某一台设备近 5min 的被访问的所有频道的�
 ---------------------------------
 整个topology的结构：
 
-*图三： topology结构*
+![图三： topology结构](https://upload-images.jianshu.io/upload_images/5915508-84e1979e17e64823.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240)
 （全部代码参见附录）
 
 优化反思
