@@ -1,1 +1,1 @@
-Blog url : zhaif.us
+Blog url : zhaif.cc
